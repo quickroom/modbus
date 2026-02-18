@@ -191,6 +191,206 @@ python3 modbus_client.py localhost --port 5020
 
 This tunnels the Modbus traffic through an encrypted SSH connection.
 
+# 🔌 Electrical Plant Register & Command Reference
+
+This Modbus server simulates a simple electrical feeder / plant with breaker control, voltage regulation, load demand, and protection logic.
+
+All values are stored as **scaled integers** (common in real Modbus devices).
+
+---
+
+# 📘 Modbus Data Model Overview
+
+The server maintains four Modbus data areas:
+
+| Type | Access | Description |
+|------|--------|-------------|
+| **Coils (co)** | Read/Write | Digital control commands |
+| **Discrete Inputs (di)** | Read-Only | Status + alarm signals |
+| **Holding Registers (hr)** | Read/Write | Operator setpoints |
+| **Input Registers (ir)** | Read-Only | Real-time electrical measurements |
+
+---
+
+# ⚡ Electrical Plant Memory Map
+
+---
+
+## 🟢 Coils (Digital Outputs – Controls)
+
+Use command:
+`wc address 0|1`
+
+| Address | Name | Description |
+|----------|------|------------|
+| 0 | Breaker Close Command | 1 = Close breaker, 0 = Open breaker |
+| 1 | Trip Reset | Set to 1 to clear latched trip |
+| 2 | AVR Enable | 1 = Voltage regulator active |
+
+**Example:**
+`wc 0 1`
+
+
+Closes the breaker and energizes the feeder.
+
+---
+
+## 🔵 Discrete Inputs (Digital Inputs – Status & Alarms)
+
+(Read-only)
+
+| Address | Name | Meaning |
+|----------|------|--------|
+| 0 | Breaker Status | 1 = Closed |
+| 1 | Trip Active | Protection trip latched |
+| 2 | Overcurrent Alarm | Current exceeded limit |
+| 3 | Undervoltage Alarm | Voltage too low |
+| 4 | Overfrequency Alarm | Frequency too high |
+| 5 | Underfrequency Alarm | Frequency too low |
+
+*(Optional: you can extend your client to add a `rd` command for reading DI.)*
+
+---
+
+## 🟡 Holding Registers (Writable Setpoints)
+
+Use command:
+
+`wr address value`
+
+
+| Addr | Name | Scale | Example |
+|------|------|-------|--------|
+| 0 | Voltage Setpoint | x1 | 480 = 480V |
+| 1 | Load Setpoint | x10 | 350 = 35.0 kW |
+| 2 | Frequency Setpoint | x100 | 6000 = 60.00 Hz |
+| 3 | Power Factor Setpoint | x1000 | 950 = 0.950 |
+
+**Example:**
+
+`wr 1 600`
+
+
+Sets load demand to **60.0 kW**
+
+---
+
+## 🔴 Input Registers (Read-Only Measurements)
+
+Use command:
+
+`ri address count`
+
+
+| Addr | Measurement | Scale | Meaning |
+|------|-------------|-------|--------|
+| 0 | Voltage (V) | x1 | Line-to-line RMS |
+| 1 | Current (A) | x10 | RMS current |
+| 2 | Active Power P (kW) | x10 | Real power |
+| 3 | Reactive Power Q (kVAR) | x10 | Reactive power |
+| 4 | Apparent Power S (kVA) | x10 | Apparent power |
+| 5 | Power Factor | x1000 | 0.000–1.000 |
+| 6 | Frequency (Hz) | x100 | System frequency |
+
+**Example:**
+
+`ri 0 7`
+
+Output:
+
+`[480, 1234, 350, 150, 380, 950, 5998]`
+
+
+Interpreted as:
+
+- Voltage = **480 V**
+- Current = **123.4 A**
+- Active Power = **35.0 kW**
+- Reactive Power = **15.0 kVAR**
+- Apparent Power = **38.0 kVA**
+- Power Factor = **0.950**
+- Frequency = **59.98 Hz**
+
+---
+
+# 🖥 Interactive Commands Explained
+
+| Command | What It Does |
+|----------|--------------|
+| `wc` | Write a coil (digital control signal) |
+| `rc` | Read coils (control outputs) |
+| `wr` | Write holding register (change setpoint) |
+| `rr` | Read holding registers |
+| `ri` | Read input registers (measurements) |
+| `demo` | Runs automated test sequence |
+| `quit` | Exit client |
+
+---
+
+# 🔄 How the Electrical Simulation Behaves
+
+## Breaker Open:
+
+- Current = 0  
+- Power = 0  
+- Voltage floats near setpoint  
+
+## Breaker Closed:
+
+- Load setpoint determines real power  
+- Current calculated from:
+
+`I = S / (√3 × V)`
+
+
+- Frequency slightly droops with load  
+- Voltage droops unless AVR is enabled  
+
+---
+
+## Protection Logic:
+
+- Overcurrent trips breaker  
+- Trip latches until reset (`wc 1 1`)  
+- Undervoltage and frequency alarms trigger automatically  
+
+---
+
+# 🔎 Typical Demo Sequence
+
+`wc 0 1 # Close breaker
+wr 1 500 # Set load to 50.0 kW
+wc 2 1 # Enable AVR
+ri 0 7 # Read measurements`
+
+
+Then increase load until overcurrent trip occurs:
+
+`wr 1 2000`
+
+
+Breaker will trip automatically.
+
+Reset it:
+
+`wc 1 1
+wc 0 1`
+
+
+---
+
+# 🧠 Why This Matters
+
+This mirrors how:
+
+- Substation IEDs expose measurements  
+- SCADA systems poll Modbus registers  
+- Protection relays trip breakers  
+- Operators change setpoints remotely  
+
+It makes your project look like an actual **electrical SCADA simulation**, not just a Python exercise.
+
+
 ## Additional Resources
 
 - Modbus Protocol: https://en.wikipedia.org/wiki/Modbus
