@@ -53,7 +53,7 @@ class ModbusClientApp:
             value: Boolean value (True/False)
         """
         try:
-            result = self.client.write_coil(address, value)
+            result = self.client.write_coil(address=address, value=value)
             if not result.isError():
                 log.info(f"Successfully wrote coil at address {address}: {value}")
                 return True
@@ -73,7 +73,7 @@ class ModbusClientApp:
             count: Number of coils to read
         """
         try:
-            result = self.client.read_coils(address, count)
+            result = self.client.read_coils(address=address, count=count)
             if not result.isError():
                 log.info(f"Read coils from address {address}: {result.bits[:count]}")
                 return result.bits[:count]
@@ -93,7 +93,7 @@ class ModbusClientApp:
             value: Integer value (0-65535)
         """
         try:
-            result = self.client.write_register(address, value)
+            result = self.client.write_register(address=address, value=value)
             if not result.isError():
                 log.info(f"Successfully wrote register at address {address}: {value}")
                 return True
@@ -113,7 +113,7 @@ class ModbusClientApp:
             count: Number of registers to read
         """
         try:
-            result = self.client.read_holding_registers(address, count)
+            result = self.client.read_holding_registers(address=address, count=count)
             if not result.isError():
                 log.info(f"Read holding registers from address {address}: {result.registers}")
                 return result.registers
@@ -133,7 +133,7 @@ class ModbusClientApp:
             values: List of integer values
         """
         try:
-            result = self.client.write_registers(address, values)
+            result = self.client.write_registers(address=address, values=values)
             if not result.isError():
                 log.info(f"Successfully wrote {len(values)} registers starting at address {address}")
                 return True
@@ -153,7 +153,7 @@ class ModbusClientApp:
             count: Number of registers to read
         """
         try:
-            result = self.client.read_input_registers(address, count)
+            result = self.client.read_input_registers(address=address, count=count)
             if not result.isError():
                 log.info(f"Read input registers from address {address}: {result.registers}")
                 return result.registers
